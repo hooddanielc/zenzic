@@ -1,14 +1,15 @@
 #include <system_error>
 #include <boost/filesystem.hpp>
 #include <package/pipe.h>
+#include <iostream>
 
 namespace child_process {
   class ChildProcess {
   private:
     pid_t pid;
-    pipe_t::pair_t out;
-    pipe_t::pair_t err;
-    pipe_t::pair_t in;
+    pipe_t::ptr_t stdout;
+    pipe_t::ptr_t stderr;
+    pipe_t::ptr_t stdin;
 
   public:
     ChildProcess(

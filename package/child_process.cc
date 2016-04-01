@@ -9,9 +9,9 @@ namespace child_process {
     char *const envp[]
   ) {
     // pipes for ipc
-    stdout = pipe_t::make_pair();
-    stderr = pipe_t::make_pair();
-    stdin = pipe_t::make_pair();
+    auto pipe_stdout = pipe_t::make_pair();
+    auto pipe_stderr = pipe_t::make_pair();
+    auto pipe_stdin = pipe_t::make_pair();
     pid = fork();
 
     if (!pid) {
@@ -19,15 +19,15 @@ namespace child_process {
       int err;
 
       // attach pipes to child
-      in.in->dup2(STDIN_FILENO);
-      out.out->dup2(STDOUT_FILENO);
-      err.out->dup2(STDERR_FILENO);
+      pipe_stdin.in->dup2(STDIN_FILENO);
+      pipe_stdout.out->dup2(STDOUT_FILENO);
+      pipe_stderr.out->dup2(STDERR_FILENO);
 
       // close all file descriptors before
       // passing process to different program
-      stdin = pipe_t::pair_t{};
-      stdout = pipe_t::pair_t{};
-      stderr = pipe_t::pair_t{};
+      pipe_stdin = pipe_t::pair_t{};
+      pipe_stdout = pipe_t::pair_t{};
+      pipe_stderr = pipe_t::pair_t{};
 
       err = execve(
         filename,
@@ -40,11 +40,10 @@ namespace child_process {
       // fork failed, throw system error
       throw std::system_error(errno, std::system_category());
     } else {
-      // close file descriptors that parent
-      // has no use for writing/reading
-      in.in.reset();
-      out.out.reset();
-      err.out.reset();
+      // set references to pipes connected to child
+      stdin = std::move(pipe_stdin.out);
+      stdout = std::move(pipe_stdout.in);
+      stderr = std::move(pipe_stderr.in);
     }
   }
 
@@ -55,12 +54,12 @@ namespace child_process {
   std::string ChildProcess::read() {
     char buffer[200];
     size_t count;
-    count = stdout.in->read(buffer, sizeof(buffer) - 1);
+    count = stdout->read(buffer, sizeof(buffer) - 1);
     return { buffer, count };
   }
 
   void ChildProcess::write(const char *message, size_t count) {
-    stdin.out->write(message, count);
+    stdin->write(message, count);
   }
 
   /**
