@@ -1,1 +1,3 @@
-.DS_Store
+*.DS_Store
+scripts/out_unix
+scripts/out_win

@@ -1,5 +1,6 @@
 #include <iostream>
-#include <package/child_process.h>
+#include <string>
+#include <zenzic/child_process.h>
 
 using namespace child_process;
 

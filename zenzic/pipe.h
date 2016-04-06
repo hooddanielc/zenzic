@@ -1,6 +1,12 @@
-#include <unistd.h>
+#pragma once
+
+#if defined(PREDEF_OS_LINUX) || defined(PREDEF_OS_MACOSX)
+  #include <unistd.h>
+#endif
+
 #include <system_error>
 #include <memory>
+#include <zenzic/predef.h>
 
 namespace child_process {
   class pipe_t {
