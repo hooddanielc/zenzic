@@ -13,8 +13,12 @@ int main(int, char*[], char *env[]) {
     env
   );
 
-  child.write("2^32\n", 5);
-  std::cout << child.read() << std::endl;
+  child.cin->write("2^32\n", 5);
+
+  char buffer[200];
+  size_t count;
+  count = child.cout->read(buffer, sizeof(buffer) - 1);
+  std::cout << buffer << std::endl;
 
   return 0;
 }
