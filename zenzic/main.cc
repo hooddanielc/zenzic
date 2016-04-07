@@ -5,7 +5,11 @@
 using namespace child_process;
 
 int main(int, char*[], char *env[]) {
-  char *argv[] = { "/usr/bin/bc", "-q", NULL };
+  #ifdef PREDEF_PLATFORM_WIN32
+    char *argv[] = { "C:\\Windows\\System32\\cmd.exe", "/c", "dir", NULL };
+  #else
+    char *argv[] = { "/usr/bin/bc", "-q", NULL };
+  #endif
 
   child_process::ChildProcess child(
     argv[0],

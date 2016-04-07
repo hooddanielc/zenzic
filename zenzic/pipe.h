@@ -7,14 +7,25 @@
 #include <system_error>
 #include <memory>
 #include <zenzic/predef.h>
+#include <iostream>
+
+#ifdef PREDEF_PLATFORM_WIN32
+  #include <windows.h>
+#endif
 
 namespace child_process {
   class pipe_t {
-  private:
-    int fd;
-    explicit pipe_t(int new_fd) noexcept;
-
   public:
+    #if defined(PREDEF_OS_LINUX) || defined(PREDEF_OS_MACOSX)
+      int fd;
+      explicit pipe_t(int new_fd) noexcept;
+    #endif
+
+    #ifdef PREDEF_PLATFORM_WIN32
+      HANDLE fd;
+      explicit pipe_t(HANDLE new_fd) noexcept;
+    #endif
+
     pipe_t(const pipe_t &) = delete;
     pipe_t &operator=(const pipe_t &) = delete;
     ~pipe_t();
