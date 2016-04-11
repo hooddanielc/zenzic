@@ -787,4 +787,3 @@
 #  define PREDEF_LIBCXX_VISUALC 0
 # endif
 #endif
-

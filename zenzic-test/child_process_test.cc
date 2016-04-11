@@ -1,4 +1,4 @@
-#include <zenzic/lick.h>
+#include <lick/lick.h>
 
 FIXTURE(foo) {
   std::string name = "two";

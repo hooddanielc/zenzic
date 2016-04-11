@@ -15,8 +15,16 @@ namespace child_process {
     }
 
     size_t pipe_t::read(char *buf, size_t size) {
-      /* TODO */
-      return 0;
+      DWORD bytes_read;
+      BOOL success = ReadFile(fd, buf, size, &bytes_read, NULL);
+
+      if (!success) {
+        DWORD win_err = GetLastError();
+        std::error_code ec(win_err, std::system_category());
+        throw std::system_error(ec, "Cannot read pipe");
+      }
+
+      return bytes_read;
     }
 
     size_t pipe_t::write(const char *buf, size_t size) {

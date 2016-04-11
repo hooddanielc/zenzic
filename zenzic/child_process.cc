@@ -1,17 +1,5 @@
 #include <zenzic/child_process.h>
 
-#include <sstream>  // TODO: remove me
-
-static void Here(const char *file, int line) {
-  std::ostringstream strm;
-  strm << file << ':' << line;
-  #ifdef PREDEF_PLATFORM_WIN32
-    MessageBox(NULL, strm.str().c_str(), "Here", MB_OK);
-  #endif
-}
-
-#define HERE Here(__FILE__, __LINE__);
-
 namespace child_process {
   #ifdef PREDEF_PLATFORM_WIN32
     ChildProcess::ChildProcess(
@@ -19,15 +7,19 @@ namespace child_process {
       char *const argv[],
       char *const envp[]
     ) {
+      ZeroMemory(&win_process_info, sizeof(PROCESS_INFORMATION));
+      ZeroMemory(&win_start_info, sizeof(STARTUPINFO));
+
+      // create string from char*[]
       std::string cmd;
       int i = 0;
-
       while (argv[i] != NULL){
         cmd.append(argv[i]);
         cmd.append(" ");
         ++i;
       }
 
+      // create LPVOID environment variable from char*[]
       std::ostringstream strm;
       for (const char *const *env = envp; *env; ++env) {
         strm << *env << '\0';
@@ -41,25 +33,21 @@ namespace child_process {
       auto pipe_cin = pipe_t::make_pair();
 
       if (
-        !SetHandleInformation(pipe_cout.out->fd, HANDLE_FLAG_INHERIT, 0) ||
-        !SetHandleInformation(pipe_cerr.out->fd, HANDLE_FLAG_INHERIT, 0) ||
-        !SetHandleInformation(pipe_cin.in->fd, HANDLE_FLAG_INHERIT, 0)
+        !SetHandleInformation(pipe_cout.in->fd, HANDLE_FLAG_INHERIT, 0) ||
+        !SetHandleInformation(pipe_cerr.in->fd, HANDLE_FLAG_INHERIT, 0) ||
+        !SetHandleInformation(pipe_cin.out->fd, HANDLE_FLAG_INHERIT, 0)
       ) {
         DWORD win_err = GetLastError();
         std::error_code ec(win_err, std::system_category());
         throw std::system_error(ec, "Cannot set handle inheritance");
       }
 
-      PROCESS_INFORMATION proc_info;
-      STARTUPINFO start_info;
       BOOL success = FALSE;
-      ZeroMemory(&proc_info, sizeof(PROCESS_INFORMATION));
-      ZeroMemory(&start_info, sizeof(STARTUPINFO));
-      start_info.cb = sizeof(STARTUPINFO);
-      start_info.hStdError = pipe_cerr.out->fd;
-      start_info.hStdOutput = pipe_cout.out->fd;
-      start_info.hStdInput = pipe_cin.in->fd;
-      start_info.dwFlags |= STARTF_USESTDHANDLES;
+      win_start_info.cb = sizeof(STARTUPINFO);
+      win_start_info.hStdError = pipe_cerr.out->fd;
+      win_start_info.hStdOutput = pipe_cout.out->fd;
+      win_start_info.hStdInput = pipe_cin.in->fd;
+      win_start_info.dwFlags |= STARTF_USESTDHANDLES;
 
       success = CreateProcess(
         filename,
@@ -70,8 +58,8 @@ namespace child_process {
         0,
         const_cast<LPVOID>(static_cast<LPCVOID>(env.c_str())),
         NULL,
-        &start_info,
-        &proc_info
+        &win_start_info,
+        &win_process_info
       );
 
       if (!success) {
