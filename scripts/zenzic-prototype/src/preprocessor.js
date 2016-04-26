@@ -17,16 +17,12 @@ import PromisePool from 'es6-promise-pool';
 */
 
 class Preprocessor {
-  get executableName() {
-    return 'clang';
-  }
-
-  get path() {
-    return this.path;
-  }
-
   constructor(opts) {
     this.path = opts.path;
+    this.flags = opts.flags || [];
+    this.includes = opts.includes || [];
+    this.root = opts.root || path.join(path.dirname(this.path), '..');
+    this.executableName = opts.executableName;
   }
 
   static findInPath() {
@@ -91,7 +87,7 @@ class Preprocessor {
     });
 
     return exists.then(() => {
-      return new Preprocessor(opts);
+      return new this(opts);
     });
   }
 }
