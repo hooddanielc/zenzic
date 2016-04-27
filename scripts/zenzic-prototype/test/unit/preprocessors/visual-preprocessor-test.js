@@ -1,6 +1,7 @@
-import VisualPreprocessor from '../../../src/preprocessors/visual-preprocessor';
 import path from 'path';
 import fs from 'fs';
+import tmp from 'tmp';
+import VisualPreprocessor from '../../../src/preprocessors/visual-preprocessor';
 
 /**
  * We are testing integration with a windows computer
@@ -50,6 +51,30 @@ describe('VisualPreprocessor', () => {
         return res.getOutput();
       }).then((res) => {
         expect(res).to.be.a('string');
+      });
+    });
+
+    it('can save preprocessor output to a file', () => {
+      let out = null;
+      let fixture = null;
+      let fixtureStdOutput = null;
+
+      return new Promise((resolve) => {
+        tmp.file((err, tmpPath) => {
+          resolve(tmpPath);
+        });
+      }).then((tmpPath) => {
+        out = tmpPath;
+        return VisualPreprocessor.make({ path: helloWorldProgram });
+      }).then((res) => {
+        fixture = res;
+        return fixture.getOutput();
+      }).then((stdOutput) => {
+        fixtureStdOutput = stdOutput;
+        return fixture.saveOutput('/tmp/we.txt');
+      }).then((res) => {
+        const result = fs.readFileSync('/tmp/we.txt').toString();
+        expect(result).to.eql(fixtureStdOutput);
       });
     });
   });

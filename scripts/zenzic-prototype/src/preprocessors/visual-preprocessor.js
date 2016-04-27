@@ -44,4 +44,29 @@ export default class VisualPreprocessor extends Preprocessor {
       });
     });
   }
+
+  saveOutput(out) {
+    return VisualPreprocessor.findInPath().then((path) => {
+      return new Promise((resolve, reject) => {
+        let result = '';
+
+        const child = childProcess.spawn(path, [
+          this.path,
+          '-P' ,           // preprocess to file
+          '-Fi' + out,
+          '-I' + this.root // include root path
+        ].concat(this.flags));
+
+        child.stdout.on('data', (data) => {
+          result += data.toString();
+        });
+
+        child.on('exit', () => {
+          console.log(result);
+          console.log(out);
+          resolve(result);
+        });
+      });
+    });
+  }
 };
