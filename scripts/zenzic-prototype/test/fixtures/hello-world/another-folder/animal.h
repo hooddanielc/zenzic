@@ -2,8 +2,7 @@
 
 #include <string>
 
-class Person {
+class Animal {
   public:
     std::string hi();
-    std::string petAnimal();
 };

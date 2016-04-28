@@ -1,7 +1,19 @@
 import os from 'os';
-import fs from 'fs';
+import fs from 'fs-extra';
 import path from 'path';
 import PromisePool from 'es6-promise-pool';
+
+function mkdirp(dir) {
+  return new Promise((resolve, reject) => {
+    fs.mkdirp(dir, (err, res) => {
+      if (err) {
+        reject(err);
+      } else {
+        resolve(res);
+      }
+    });
+  });
+}
 
 /**
 * Preprocessor is the starting point for building all
@@ -23,6 +35,73 @@ class Preprocessor {
     this.includes = opts.includes || [];
     this.root = opts.root || path.join(path.dirname(this.path), '..');
     this.executableName = opts.executableName;
+  }
+
+  filterProjectPaths(paths) {
+    const root = path.normalize(this.root);
+
+    return paths.filter((filepath) => {
+      return path.relative(this.root, filepath).indexOf('..') === -1;
+    });
+  }
+
+  compileAsTarget(out, tab) {
+    let first = null;
+    let outFirst = null;
+    const taboo = taboo || [this.path];
+
+    return mkdirp(out).then(() => {
+      first = path.relative(this.root, this.path);
+      outFirst = first.substring(0, first.length - path.extname(first).length);
+      return mkdirp(path.join(out, path.dirname(first)));
+    }).then(() => {
+      return this.saveOutput(path.join(out, outFirst));
+    }).then(() => {
+      const preprocessors = [this];
+
+      const todo = this.meta.projectHeaders.map((file) => {
+        const header = path.relative(this.root, file);
+        const name = header.substring(0, header.length - path.extname(header).length);
+
+        return {
+          name: name,
+          src: name + '.cc',
+          file: file
+        };
+      });
+
+      const work = () => {
+        const job = todo.pop();
+
+        if (job) {
+          const src = path.join(this.root, job.src);
+
+          return new Promise((resolve, reject) => {
+            fs.exists(path.join(this.root, job.src), (res) => {
+              resolve(res);
+            });
+          }).then((exists) => {
+            if (exists && taboo.indexOf(src) === -1) {
+              taboo.push(this.path);
+
+              return this.constructor.make(Object.assign({
+                path: src,
+                root: this.root
+              }, this.opts)).then((preprocessor) => {
+                return preprocessor.compileAsTarget(out, taboo).then(() => {
+                  preprocessors.push(preprocessor);
+                  return preprocessors;
+                });
+              });
+            }
+          });
+        }
+      };
+
+      return new PromisePool(work, os.cpus().length).start().then((res) => {
+        return preprocessors;
+      });
+    });
   }
 
   static findInPath() {
@@ -69,6 +148,18 @@ class Preprocessor {
     });
   }
 
+  static readMeta(filepath) {
+    return new Promise((resolve, reject) => {
+      fs.readFile(filepath, (err, data) => {
+        if (data) {
+          resolve(JSON.parse(data.toString()));
+        } else {
+          resolve();
+        }
+      });
+    });
+  }
+
   static make(opts) {
     opts = opts || {};
 
@@ -86,8 +177,20 @@ class Preprocessor {
       });
     });
 
-    return exists.then(() => {
+    return exists.then((exists) => {
       return new this(opts);
+    });
+  }
+
+  static lastModifiedDate(filepath) {
+    return new Promise((resolve, reject) => {
+      fs.stat(filepath, (err, res) => {
+        if (err) {
+          reject(err);
+        } else {
+          resolve(new Date(res.mtime));
+        }
+      });
     });
   }
 }
