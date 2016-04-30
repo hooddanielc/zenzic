@@ -85,6 +85,7 @@ describe('VisualPreprocessor', () => {
   });
 
   it('compiles hello world', function() {
+    this.timeout(10000);
     fs.removeSync(testDirectory);
 
     return VisualPreprocessor.make({ path: helloWorldProgram }).then((res) => {
