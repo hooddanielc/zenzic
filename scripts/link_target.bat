@@ -33,6 +33,9 @@ echo.
 
 for %%a in (%objs:~1,-1%) do call set "cmd_objs=%out%\%%a.obj %%cmd_objs%%"
 
+echo "HOLY MOLY"
+echo %cc% %cmd_objs% %flags:~1,-1% -out:%out%\%name%.exe
+
 :: finally call link
 call %cc% %cmd_objs% %flags:~1,-1% -out:%out%\%name%.exe && (echo Success! %name%.exe) || (echo FAILURE && exit /b 1)
 

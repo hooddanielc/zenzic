@@ -33,6 +33,7 @@ class Preprocessor {
     this.path = opts.path;
     this.flags = opts.flags || [];
     this.includes = opts.includes || [];
+    this.linkerFlags = opts.linkedFlags || [];
     this.root = opts.root || path.join(path.dirname(this.path), '..');
     this.executableName = opts.executableName;
   }
@@ -45,10 +46,12 @@ class Preprocessor {
     });
   }
 
-  compileAsTarget(out, tab) {
+  compileAsTarget(out, tab, preprocessors) {
     let first = null;
     let outFirst = null;
     const taboo = taboo || [this.path];
+    preprocessors = preprocessors || [];
+    preprocessors.push(this);
 
     return mkdirp(out).then(() => {
       first = path.relative(this.root, this.path);
@@ -57,7 +60,6 @@ class Preprocessor {
     }).then(() => {
       return this.saveOutput(path.join(out, outFirst));
     }).then(() => {
-      const preprocessors = [this];
 
       const todo = this.meta.projectHeaders.map((file) => {
         const header = path.relative(this.root, file);
@@ -88,8 +90,7 @@ class Preprocessor {
                 path: src,
                 root: this.root
               }, this.opts)).then((preprocessor) => {
-                return preprocessor.compileAsTarget(out, taboo).then(() => {
-                  preprocessors.push(preprocessor);
+                return preprocessor.compileAsTarget(out, taboo, preprocessors).then(() => {
                   return preprocessors;
                 });
               });
@@ -104,7 +105,8 @@ class Preprocessor {
     });
   }
 
-  static findInPath() {
+  static findInPath(executableName) {
+    executableName = executableName || this.executableName;
     const paths = process.env.PATH.split(';');
     const crawlResults = [];
 
@@ -134,7 +136,7 @@ class Preprocessor {
 
       crawlResults.forEach((item) => {
         const execs = item.filenames.filter((exec) => {
-          return exec === this.executableName;
+          return exec === executableName;
         });
 
         for (let i = 0; i < execs.length; ++i) {

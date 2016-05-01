@@ -3,6 +3,7 @@ import fs from 'fs-extra';
 import mkdirp from 'mkdirp';
 import tmp from 'tmp';
 import os from 'os';
+import childProcess from 'child_process';
 import VisualPreprocessor from '../../../src/preprocessors/visual-preprocessor';
 
 /**
@@ -86,9 +87,11 @@ describe('VisualPreprocessor', () => {
 
   it('compiles hello world', function() {
     this.timeout(10000);
+    let fixture = null;
     fs.removeSync(testDirectory);
 
     return VisualPreprocessor.make({ path: helloWorldProgram }).then((res) => {
+      fixture = res;
       return res.compileAsTarget(testDirectory);
     }).then((res) => {
       expect(fs.existsSync(path.join(testDirectory, 'hello-world', 'main.o'))).to.eql(true);
@@ -97,6 +100,34 @@ describe('VisualPreprocessor', () => {
       expect(fs.existsSync(path.join(testDirectory, 'hello-world', 'person.o'))).to.eql(true);
       expect(fs.existsSync(path.join(testDirectory, 'hello-world', 'person.prep'))).to.eql(true);
       expect(fs.existsSync(path.join(testDirectory, 'hello-world', 'person.meta'))).to.eql(true);
+      expect(fs.existsSync(path.join(testDirectory, 'hello-world', 'another-folder', 'animal.o'))).to.eql(true);
+      expect(fs.existsSync(path.join(testDirectory, 'hello-world', 'another-folder', 'animal.prep'))).to.eql(true);
+      expect(fs.existsSync(path.join(testDirectory, 'hello-world', 'another-folder', 'animal.meta'))).to.eql(true);
+      expect(res.length).to.eql(3);
+      expect(res[0].path).to.eql(path.join(__dirname, '..', '..', 'fixtures', 'hello-world', 'main.cc'));
+      expect(res[1].path).to.eql(path.join(__dirname, '..', '..', 'fixtures', 'hello-world', 'person.cc'));
+      expect(res[2].path).to.eql(path.join(__dirname, '..', '..', 'fixtures', 'hello-world', 'another-folder', 'animal.cc'));
+
+      res.forEach((preprocessor) => {
+        expect(preprocessor.root).to.eql(path.join(__dirname, '..', '..', 'fixtures'));
+      });
+
+      return fixture.linkExecutable(res);
+    }).then(() => {
+      const helloWorld = path.join(testDirectory, 'hello-world', 'main.exe');
+      expect(fs.existsSync(helloWorld)).to.eql(true);
+
+      return new Promise((resolve, reject) => {
+        const child = childProcess.exec(helloWorld, (err, res) => {
+          if (err) {
+            reject(err);
+          } else {
+            resolve(res);
+          }
+        });
+      });
+    }).then((res) => {
+      expect(res.trim()).to.eql('KAPOOYA?');
     });
   });
 });

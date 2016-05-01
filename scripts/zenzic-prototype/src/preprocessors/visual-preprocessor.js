@@ -9,9 +9,14 @@ export default class VisualPreprocessor extends Preprocessor {
     return 'cl.exe';
   }
 
+  static get linkerExecutableName() {
+    return 'link.exe';
+  }
+
   constructor(opts) {
     super(opts);
-    this.executableName = opts.executableName || 'cl.exe';
+    this.executableName = opts.executableName || this.constructor.executableName;
+    this.linkerExecutableName = opts.linkerExecutableName || this.constructor.linkerExecutableName;
   }
 
   get includeFlags() {
@@ -71,7 +76,8 @@ export default class VisualPreprocessor extends Preprocessor {
           compileDate: new Date(),
           includedHeaders: includedHeaders,
           projectHeaders: this.filterProjectPaths(includedHeaders),
-          output: stdOut
+          output: stdOut,
+          out: out + '.o'
         };
 
         this.meta = meta;
@@ -118,11 +124,11 @@ export default class VisualPreprocessor extends Preprocessor {
   }
 
   saveOutput(out) {
-    let thePath = null;
+    let compilerExecutable = null;
     let theMeta = null;
 
     return this.constructor.findInPath().then((path) => {
-      thePath = path;
+      compilerExecutable = path;
       return this.constructor.readMeta(out + '.meta');
     }).then((meta) => {
       theMeta = meta;
@@ -140,6 +146,28 @@ export default class VisualPreprocessor extends Preprocessor {
       }
 
       return true;
+    }).then((ccNeedsCompile) => {
+      // check to see if the header changed?
+      if (!ccNeedsCompile) {
+        return new Promise((resolve, reject) => {
+          const ext = path.extname(this.path);
+          const header = this.path.substring(0, this.path.length - ext.length) + '.h';
+
+          fs.stat(header, (err, res) => {
+            if (err) {
+              resolve(false);
+            } else {
+              if ((new Date(theMeta.compileDate)) < new Date(res.mtime)) {
+                resolve(true);
+              } else {
+                resolve(false);
+              }
+            }
+          });
+        });
+      }
+
+      return true;
     }).then((needsCompile) => {
       if (!needsCompile) {
         this.meta = theMeta;
@@ -148,7 +176,7 @@ export default class VisualPreprocessor extends Preprocessor {
         return new Promise((resolve, reject) => {
           let result = '';
 
-          const child = childProcess.spawn(thePath, [
+          const child = childProcess.spawn(compilerExecutable, [
             '/Fo' + out + '.o', // output file name
             '/C',
             '/I' + this.root,   // include root path
@@ -166,6 +194,41 @@ export default class VisualPreprocessor extends Preprocessor {
           });
         });
       }
+    });
+  }
+
+  // preprocessors come from compileAsTarget method
+  // the first proccessor is assumed to be the main
+  // entry point, and thus will be named named
+  // accordingly
+  linkExecutable(preprocessors) {
+    return this.constructor.findInPath(this.linkerExecutableName).then((cc) => {
+      return new Promise((resolve, reject) => {
+        const objs = preprocessors.map((prep) => {
+          return prep.meta.out;
+        });
+
+        const ext = path.extname(objs[0]);
+        const executable = objs[0].substring(0, objs[0].length - ext.length) + '.exe';
+
+        const child = childProcess.spawn(cc, objs.concat(this.linkerFlags).concat([
+          '-out:' + executable
+        ]));
+
+        let result = '';
+
+        child.stdout.on('data', (data) => {
+          result += data.toString();
+        });
+
+        child.on('exit', (exitCode) => {
+          if (exitCode === 0) {
+            resolve(result);
+          } else {
+            reject(result);
+          }
+        });
+      });
     });
   }
 };
