@@ -1,0 +1,8 @@
+{
+  "name": "super-sexy-module",
+
+  "visual-studio": {
+    "flags": "-EHsc -WX -D \"_MBCS\" -c",
+    "linkerFlags": "user32.lib"
+  }
+}

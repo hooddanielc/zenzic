@@ -63,6 +63,7 @@
     "mainVarName": "zenzic"
   },
   "dependencies": {
+    "async": "^2.0.0-rc.3",
     "download": "^4.4.3",
     "download-status": "^2.2.1",
     "es6-promise-pool": "^2.4.1",
