@@ -6,12 +6,15 @@ import async from 'async';
 // the module class
 // assumes all dependencies are
 // installed in the zenzic_modules folder.
-// the module class should take care of
-// compiling and resolving source files in
-// dependencies.
 class Module {
   constructor(config) {
     this.config = config;
+    this.childModules = config.childModules || [];
+    this.dir = config.dir;
+  }
+
+  buildTarget(cc) {
+
   }
 
   static make(dir, root=true) {

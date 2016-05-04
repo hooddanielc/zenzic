@@ -26,6 +26,12 @@ export default class VisualPreprocessor extends Preprocessor {
       result.push('-I' + path.resolve(this.root, includeDir));
     });
 
+    if (this.module) {
+      this.module.childModules.forEach((module) => {
+        result.push('-I' + module.dir);
+      });
+    }
+
     return result;
   }
 

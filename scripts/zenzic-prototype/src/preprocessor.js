@@ -36,6 +36,7 @@ class Preprocessor {
     this.linkerFlags = opts.linkedFlags || [];
     this.root = opts.root || path.join(path.dirname(this.path), '..');
     this.executableName = opts.executableName;
+    this.module = opts.module;
   }
 
   filterProjectPaths(paths) {
