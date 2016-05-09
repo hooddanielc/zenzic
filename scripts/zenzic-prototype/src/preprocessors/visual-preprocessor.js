@@ -17,6 +17,18 @@ export default class VisualPreprocessor extends Preprocessor {
     super(opts);
     this.executableName = opts.executableName || this.constructor.executableName;
     this.linkerExecutableName = opts.linkerExecutableName || this.constructor.linkerExecutableName;
+
+    if (this.module) {
+      const config = this.module.config['visual-studio'];
+
+      if (config.linkerFlags) {
+        this.linkerFlags = this.linkerFlags.concat(config.linkerFlags);
+      }
+
+      if (config.flags) {
+        this.flags = this.flags.concat(config.flags);
+      }
+    }
   }
 
   get includeFlags() {
@@ -25,6 +37,12 @@ export default class VisualPreprocessor extends Preprocessor {
     this.includes.forEach((includeDir) => {
       result.push('-I' + path.resolve(this.root, includeDir));
     });
+
+    if (this.module) {
+      this.module.childModules.forEach((module) => {
+        result.push('-I' + module.dir);
+      });
+    }
 
     return result;
   }
@@ -100,24 +118,24 @@ export default class VisualPreprocessor extends Preprocessor {
 
         const child = childProcess.spawn(path, [
           '/P',
-          '/C',
+          '/c',
           '/Fi' + out + '.prep',  // preprocessed file name
           '/I' + this.root,       // include root path
           this.path
-        ].concat(this.flags));
-
-        child.stdout.on('data', (data) => {
-          result += data.toString();
-        });
+        ].concat(this.flags).concat(this.includeFlags));
 
         child.stderr.on('data', (data) => {
           result += data.toString();
         });
 
-        child.on('exit', () => {
-          this.saveMetaData(out, result).then(() => {
-            resolve(result);
-          }, reject);
+        child.on('exit', (exitCode) => {
+          if (exitCode !== 0) {
+            reject(result);
+          } else {
+            this.saveMetaData(out, result).then(() => {
+              resolve(result);
+            }, reject);
+          }
         });
       });
     });
@@ -177,20 +195,24 @@ export default class VisualPreprocessor extends Preprocessor {
           let result = '';
 
           const child = childProcess.spawn(compilerExecutable, [
+            '/c',
             '/Fo' + out + '.o', // output file name
-            '/C',
             '/I' + this.root,   // include root path
             this.path
-          ].concat(this.flags));
+          ].concat(this.flags).concat(this.includeFlags));
 
           child.stdout.on('data', (data) => {
             result += data.toString();
           });
 
-          child.on('exit', () => {
-            this.savePreprocessedOutput(out).then(() => {
-              resolve(result);
-            }, reject);
+          child.on('exit', (exitCode) => {
+            if (exitCode !== 0) {
+              reject(result);
+            } else {
+              this.savePreprocessedOutput(out).then(() => {
+                resolve(result);
+              }, reject);
+            }
           });
         });
       }

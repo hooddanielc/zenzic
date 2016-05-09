@@ -11,7 +11,9 @@ import async from 'async';
 // dependencies.
 class Module {
   constructor(config) {
-    this.config = config;
+    this.config = config || {};
+    this.childModules = config.childModules || [];
+    this.dir = config.dir;
   }
 
   static make(dir, root=true) {

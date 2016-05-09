@@ -2,6 +2,7 @@ import os from 'os';
 import fs from 'fs-extra';
 import path from 'path';
 import PromisePool from 'es6-promise-pool';
+import Module from './module';
 
 function mkdirp(dir) {
   return new Promise((resolve, reject) => {
@@ -36,6 +37,7 @@ class Preprocessor {
     this.linkerFlags = opts.linkedFlags || [];
     this.root = opts.root || path.join(path.dirname(this.path), '..');
     this.executableName = opts.executableName;
+    this.module = opts.module;
   }
 
   filterProjectPaths(paths) {
@@ -60,7 +62,6 @@ class Preprocessor {
     }).then(() => {
       return this.saveOutput(path.join(out, outFirst));
     }).then(() => {
-
       const todo = this.meta.projectHeaders.map((file) => {
         const header = path.relative(this.root, file);
         const name = header.substring(0, header.length - path.extname(header).length);
@@ -179,7 +180,10 @@ class Preprocessor {
       });
     });
 
-    return exists.then((exists) => {
+    return exists.then(() => {
+      return Module.make(opts.root || path.join(path.dirname(opts.path), '..'));
+    }).then((module) => {
+      opts.module = module;
       return new this(opts);
     });
   }

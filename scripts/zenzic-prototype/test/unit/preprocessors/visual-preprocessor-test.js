@@ -16,6 +16,7 @@ import VisualPreprocessor from '../../../src/preprocessors/visual-preprocessor';
 
 const isWindows = /^win/.test(process.platform);
 const helloWorld = path.join(__dirname, '..', '..', 'fixtures', 'hello-world', 'main.cc');
+const codeUsingModules = path.join(__dirname, '..', '..', 'fixtures', 'code-using-modules', 'main.cc');
 
 describe('VisualPreprocessor', () => {
   if (!isWindows) {
@@ -37,15 +38,13 @@ describe('VisualPreprocessor', () => {
   it('can return proper include flags', () => {
     return VisualPreprocessor.make({
       path: helloWorldProgram,
-      root: path.resolve(helloWorldProgram, '..'),
       includes: ['/tmp/hello', 'relative-path']
     }).then((res) => {
       expect(res.includeFlags).to.be.a('array');
-
-      expect(res.includeFlags).to.deep.eql([
-        '-I' + path.resolve('/tmp/hello'),
-        '-I' + path.resolve(helloWorldProgram, '..', 'relative-path')
-      ]);
+      expect(res.includeFlags).to.contain('-I' + path.resolve('/tmp/hello'));
+      expect(res.includeFlags).to.contain('-I' + path.resolve(helloWorldProgram, '..', '..', 'relative-path'));
+      expect(res.includeFlags).to.contain('-I' + path.resolve(helloWorldProgram, '..', '..', 'zenzic_modules', 'a-sexy-module'));
+      expect(res.includeFlags).to.contain('-I' + path.resolve(helloWorldProgram, '..', '..', 'zenzic_modules', 'super-sexy-module'));
     });
   });
 
@@ -74,14 +73,14 @@ describe('VisualPreprocessor', () => {
       return fixture.getOutput();
     }).then((stdOutput) => {
       fixtureStdOutput = stdOutput;
-      return fixture.saveOutput('/tmp/we');
+      return fixture.saveOutput(path.join(os.tmpdir(), '/we'));
     }).then(() => {
-      expect(fs.existsSync('/tmp/we.o')).to.eql(true);
-      expect(fs.existsSync('/tmp/we.prep'));
-      expect(fs.existsSync('/tmp/we.meta'));
-      fs.unlinkSync('/tmp/we.prep');
-      fs.unlinkSync('/tmp/we.o');
-      fs.unlinkSync('/tmp/we.meta');
+      expect(fs.existsSync(path.join(os.tmpdir(), '/we.o'))).to.eql(true);
+      expect(fs.existsSync(path.join(os.tmpdir(), '/we.prep')));
+      expect(fs.existsSync(path.join(os.tmpdir(), '/we.meta')));
+      fs.unlinkSync(path.join(os.tmpdir(), '/we.prep'));
+      fs.unlinkSync(path.join(os.tmpdir(), '/we.o'));
+      fs.unlinkSync(path.join(os.tmpdir(), '/we.meta'));
     });
   });
 
@@ -128,6 +127,36 @@ describe('VisualPreprocessor', () => {
       });
     }).then((res) => {
       expect(res.trim()).to.eql('KAPOOYA?');
+    });
+  });
+
+  it('compiles code-using-modules', function() {
+    fs.removeSync(testDirectory);
+    this.timeout(10000);
+    let fixture = null;
+    fs.removeSync(testDirectory);
+
+    return VisualPreprocessor.make({ path: codeUsingModules }).then((res) => {
+      fixture = res;
+      return res.compileAsTarget(testDirectory);
+    }).then((res) => {
+      return fixture.linkExecutable(res);
+    }).then((res) => {
+      const usingModules = path.join(testDirectory, 'code-using-modules', 'main.exe');
+      expect(fs.existsSync(helloWorld)).to.eql(true);
+
+      return new Promise((resolve, reject) => {
+        const child = childProcess.exec(usingModules, (err, res) => {
+          if (err) {
+            reject(err);
+          } else {
+            resolve(res);
+          }
+        });
+      });
+    }).then((res) => {
+      expect(res).to.contain('Hey there sailor');
+      expect(res).to.contain('Hey there big fella');
     });
   });
 });
