@@ -108,7 +108,14 @@ class Preprocessor {
 
   static findInPath(executableName) {
     executableName = executableName || this.executableName;
-    const paths = process.env.PATH.split(';');
+    let paths = null;
+
+    if (process.platform === 'win') {
+      paths = process.env.PATH.split(';');
+    } else {
+      paths = process.env.PATH.split(':');
+    }
+
     const crawlResults = [];
 
     const work = () => {
