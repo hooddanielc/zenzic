@@ -1,9 +1,11 @@
 import Preprocesser from './preprocessor';
 import VisualPreprocessor from './preprocessors/visual-preprocessor';
+import ClangPreprocessor from './preprocessors/clang-preprocessor';
 import CLI from './cli';
 
 const zenzic = {
-  VisualPreprocessor: VisualPreprocessor,
+  VisualStudio: VisualPreprocessor,
+  Clang: ClangPreprocessor,
   Preprocesser: Preprocesser,
   CLI: CLI,
 

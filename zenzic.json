@@ -1,0 +1,30 @@
+{
+  "name": "zenzic",
+  "visual-studio": {
+    "flags": [
+      "-EHsc",
+      "-WX"
+    ],
+    "linkerFlags": [
+      "user32.lib"
+    ]
+  },
+  "clang": {
+    "flags": [
+      "--std=c++14",
+      "-Weverything",
+      "-Wno-c++98-compat",
+      "-Wno-shadow",
+      "-Wno-global-constructors",
+      "-Wno-exit-time-destructors",
+      "-pthread",
+      "-Wno-padded",
+      "-Wno-weak-vtables",
+      "-D__STDC_CONSTANT_MACROS",
+      "-D__STDC_LIMIT_MACROS"
+    ],
+    "linkerFlags": [
+      "-lstdc++"
+    ]
+  }
+}

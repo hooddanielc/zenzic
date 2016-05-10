@@ -62,6 +62,10 @@ export default class ClangPreprocessor extends Preprocessor {
           result += data.toString();
         });
 
+        child.stderr.on('data', (data) => {
+          result += data.toString();
+        });
+
         child.on('exit', (exitCode) => {
           if (exitCode !== 0) {
             reject(result);
@@ -211,6 +215,10 @@ export default class ClangPreprocessor extends Preprocessor {
             result += data.toString();
           });
 
+          child.stderr.on('data', (data) => {
+            result += data.toString();
+          });
+
           child.on('exit', (exitCode) => {
             if (exitCode !== 0) {
               reject(result);
@@ -244,6 +252,10 @@ export default class ClangPreprocessor extends Preprocessor {
         ]));
 
         let result = '';
+
+        child.stderr.on('data', (data) => {
+          result += data.toString();
+        });
 
         child.stdout.on('data', (data) => {
           result += data.toString();

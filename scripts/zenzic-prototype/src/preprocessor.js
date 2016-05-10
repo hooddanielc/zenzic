@@ -51,7 +51,7 @@ class Preprocessor {
   compileAsTarget(out, tab, preprocessors) {
     let first = null;
     let outFirst = null;
-    const taboo = taboo || [this.path];
+    const taboo = tab || [this.path];
     preprocessors = preprocessors || [];
     preprocessors.push(this);
 
@@ -79,14 +79,18 @@ class Preprocessor {
         if (job) {
           const src = path.join(this.root, job.src);
 
+          if (taboo.indexOf(path.join(this.root, job.src)) !== -1) {
+            return;
+          }
+
+          taboo.push(path.join(this.root, job.src));
+
           return new Promise((resolve, reject) => {
             fs.exists(path.join(this.root, job.src), (res) => {
               resolve(res);
             });
           }).then((exists) => {
-            if (exists && taboo.indexOf(src) === -1) {
-              taboo.push(this.path);
-
+            if (exists) {
               return this.constructor.make(Object.assign({
                 path: src,
                 root: this.root
