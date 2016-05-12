@@ -114,7 +114,7 @@ class Preprocessor {
     executableName = executableName || this.executableName;
     let paths = null;
 
-    if (process.platform === 'win') {
+    if (/^win/.test(process.platform)) {
       paths = process.env.PATH.split(';');
     } else {
       paths = process.env.PATH.split(':');
